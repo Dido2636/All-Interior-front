@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
 import Card from "./Card";
+import { IoIosSend } from "react-icons/io";
 
 function MediaUpload() {
   const [selectedImage, setSelectedImage] = useState([]);
@@ -22,8 +23,9 @@ function MediaUpload() {
   const [allMedia, setAllMedia] = useState(null);
   const [modal, setModal] = useState(false);
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
+  const [showComments, setShowComments] = useState(false);
+  const [error, setError] = useState(null);
 
-  const userData = JSON.parse(sessionStorage.getItem("user"));
   const decoratorData = JSON.parse(sessionStorage.getItem("decorator"));
 
   useEffect(() => {
@@ -68,6 +70,17 @@ function MediaUpload() {
 
   const handleUpload = async (e) => {
     e.preventDefault();
+
+    if (!title) {
+      setError("Veuillez ajouter une catégorie !");
+      return;
+    }
+
+    if (selectedImage.length === 0) {
+      setError("Veuillez ajouter un fichier !");
+      return;
+    }
+
     const formData = new FormData();
     for (const file of selectedImage) {
       formData.append("imageMedia", file);
@@ -76,18 +89,22 @@ function MediaUpload() {
     formData.append("description", description);
     formData.append("sousDescription", sousDescription);
     formData.append("viewUrl", viewUrl);
+
     console.log(selectedImage, title, description, viewUrl);
+
     try {
       const token = JSON.parse(sessionStorage.getItem("token"));
-      console.log(token);
+
       if (!token) {
-        throw new Error("Token not found");
+        throw new Error("Token non trouvé");
       }
+
       const config = {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       };
+
       const response = await axios.post(
         "http://localhost:6789/media/create-media",
         formData,
@@ -103,31 +120,23 @@ function MediaUpload() {
       } else {
         console.error("La réponse du serveur est incorrecte ou vide");
       }
+
       setTitle("");
       setDescription("");
       setSousDescription("");
       setViewUrl("");
 
       getAllMedia();
+      window.location.reload();
     } catch (error) {
-      console.error("Error uploading image:", error);
+      console.error("Erreur lors du téléchargement de l'image :", error);
+      setError(
+        "Une erreur s'est produite lors de la création du média. Veuillez réessayer."
+      );
     }
   };
 
   // -----UPDATE-----///
-
-  // const updateMedia = async (mediaId, newData) => {
-  //   try {
-  //     const response = await axios.put(
-  //       `http://localhost:6789/media/update-media/${mediaId}`,
-  //       newData
-  //     );
-  //     console.log("Updated media:", response.data);
-  //     getAllMedia();
-  //   } catch (error) {
-  //     console.error("Error updating media:", error);
-  //   }
-  // };
 
   const toggleModal = () => {
     setModal(!modal);
@@ -242,8 +251,8 @@ function MediaUpload() {
       );
 
       console.log("Commentaire ajouté à :", response.data);
-      getAllMedia();
       setCommentaire("");
+      getAllMedia();
     } catch (error) {
       // Gérer les erreurs en conséquence
     }
@@ -259,6 +268,11 @@ function MediaUpload() {
     } catch (error) {
       console.error("Error fetching media:", error);
     }
+  };
+
+  const toggleComments = (mediaId) => {
+    setSelectedMediaId(selectedMediaId === mediaId ? null : mediaId);
+    setShowComments(selectedMediaId === mediaId ? !showComments : true);
   };
 
   ///----Filter----///
@@ -289,11 +303,12 @@ function MediaUpload() {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
             >
-              <option value="">Choisissez une option</option>
+              <option value="">Choisissez une categorie*</option>
               <option value="3D">3D</option>
               <option value="IMAGE">IMAGE</option>
               <option value="PLAN">PLAN</option>
             </select>
+
             <input
               className="input-field-upload"
               type="text"
@@ -326,6 +341,7 @@ function MediaUpload() {
             <button className="btn-fichier" type="submit">
               Poster fichier
             </button>
+            {error && <p style={{ color: "red" }}>{error}</p>}
           </form>
         ) : null}
       </div>
@@ -373,6 +389,8 @@ function MediaUpload() {
                       title={media.title}
                       description={media.description}
                     />
+                  </div>
+                </Link>
                     {media.viewUrl && (
                       <button
                         className="btn-view"
@@ -383,50 +401,67 @@ function MediaUpload() {
                         View 360°
                       </button>
                     )}
-                  </div>
-                </Link>
-                <div className="comment-list">
-                  {media.commentaire.map((comment) => (
-                    <div key={comment._id}>
-                      <div className="box-one-comment">
-                        <p
-                          className="name-comment"
-                          style={{ fontSize: "10px", fontStyle: "italic" }}
-                        >
-                          {comment.author} :{" "}
-                        </p>
-                        <p
-                          className="content-comment"
-                          style={{ fontSize: "9px", fontStyle: "italic" }}
-                        >
-                          {comment.commentaire}
-                        </p> 
-                        <br />
-                        <br />
-                        <br />
-                        <p style={{ fontSize: "9px", fontStyle: "italic" }}>Crér à :{comment.createAt}</p>
-                        <button
-                          style={{ fontSize: "9px" }}
-                          onClick={() => deleteComment(media._id, comment._id)}
-                        >
-                          x
-                        </button>
-                      </div>
+
+                {media._id === selectedMediaId && (
+                  <>
+                    <div className="comment-form">
+                      <input
+                        type="text"
+                        className="input-comment"
+                        placeholder="Laissez un Commentaire"
+                        onChange={(e) => setCommentaire(e.target.value)}
+                      />
+                      <button
+                        className="btn-delete"
+                        onClick={() =>
+                          handleCommentaire(media._id, commentaire)
+                        }
+                      >
+                        <IoIosSend />
+                      </button>
                     </div>
-                  ))}
-                </div>
-                <div className="comment-form">
-                  <input
-                    type="text"
-                    className="input-comment"
-                    placeholder="Laissez un Commentaire"
-                    onChange={(e) => setCommentaire(e.target.value)}
-                  />
+                    {media.commentaire.map((comment) => (
+                      <div key={comment._id} className="box-one-comment">
+                        <div className="box-comment-content">
+                          <p className="name-comment">{comment.author} : </p>
+                          <p className="content-comment">
+                            {comment.commentaire}
+                          </p>
+                        </div>
+
+                        <div className="box-createAt">
+                          <p className="createAt">
+                            postée le :{" "}
+                            {new Date(comment.createAt).toLocaleDateString(
+                              "fr-FR"
+                            )}
+                          </p>
+                          <button
+                            className="delete-comment"
+                            onClick={() =>
+                              deleteComment(media._id, comment._id)
+                            }
+                          >
+                            x
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </>
+                )}
+
+                <div className="comment-list">
                   <button
-                    className="btn-delete"
-                    onClick={() => handleCommentaire(media._id, commentaire)}
+                    className={`modal-comment ${
+                      selectedMediaId === media._id && showComments
+                        ? "black-bg"
+                        : "gray-bg"
+                    }`}
+                    onClick={() => toggleComments(media._id)}
                   >
-                    Commentez
+                    {selectedMediaId === media._id && showComments
+                      ? "x"
+                      : "Voir les commentaires"}
                   </button>
                 </div>
 
@@ -438,28 +473,33 @@ function MediaUpload() {
                     >
                       Update
                     </button>
+
                     {modal && selectedMediaId === media._id && (
                       <div className="modal-content">
                         <form
                           className="form-update"
                           onSubmit={handleUpdateMedia}
                         >
-                          <input
-                            type="text"
+                          <select
                             className="input-update"
-                            placeholder="New Title"
-                            value={updateData.title}
+                            placeholder="Choix"
+                            value={title}
                             onChange={(e) =>
                               setUpdateData({
                                 ...updateData,
                                 title: e.target.value,
                               })
                             }
-                          />
+                          >
+                            <option value="">Choisissez une categorie</option>
+                            <option value="3D">3D</option>
+                            <option value="IMAGE">IMAGE</option>
+                            <option value="PLAN">PLAN</option>
+                          </select>
                           <input
                             type="text"
                             className="input-update"
-                            placeholder="New Description"
+                            placeholder="title"
                             value={updateData.description}
                             onChange={(e) =>
                               setUpdateData({
@@ -487,6 +527,7 @@ function MediaUpload() {
                         </form>
                       </div>
                     )}
+
                     {showConfirmationModal && selectedMediaId === media._id && (
                       <div className="confirmation-modal">
                         <p>Voulez-vous vraiment supprimer ce post ?</p>

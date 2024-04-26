@@ -11,9 +11,6 @@ import Contact from "./pages/Contact";
 import MediaDetailsPage from "./pages/MediaDetailsPage";
 import Footer from "./components/Footer";
 
-
-
-
 function App() {
   return (
     <>
@@ -51,3 +48,5 @@ function App() {
 }
 
 export default App;
+
+

@@ -10,6 +10,7 @@ function LoginDecorator() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -33,8 +34,14 @@ function LoginDecorator() {
       navigate("/espace-deco");
     } catch (error) {
       console.error("Erreur de connexion", error.message);
+      if ("Invalid password") {
+        setError("Mot de passe incorrect");
+      } else {
+        setError("Une erreur s'est produite lors de la connexion");
+      }
     }
   };
+
 
   const toggleShowPassword = () => {
     setShowPassword(!showPassword);
@@ -59,13 +66,14 @@ function LoginDecorator() {
             onChange={(e) => setPassword(e.target.value)}
           />
           <a className="eyes-password" onClick={toggleShowPassword}>
-            {showPassword ? <FaEye /> : <FaEyeSlash />}
+            {showPassword ? <FaEye className="eyes-password" /> : <FaEyeSlash className="eyes-password" />}
           </a>
         </div>
 
         <button className="btn-login" type="submit">
           connexion
         </button>
+        {error && <p style={{ color: "red" }}>{error}</p>}
         <div className="inscrivez-vous">
           <p className="small-text">Vous n'avez pas encore de compte ?</p>
           <Link to="/decorators/register">
